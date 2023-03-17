@@ -1,0 +1,102 @@
+<!DOCTYPE HTML>
+<title>a simple TOTP generator</title>
+<meta charset=utf-8>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<style>
+input:invalid { outline-style: solid; outline-color: red; border-color: red; }
+input:invalid + ::after {
+	color: red;
+	font-weight: bold;
+	content: 'ERROR: only letters and digits from 2 to 7 allowed';
+}
+#code { font-family: monospace; font-size: 18pt; letter-spacing: .15em; }
+form > * { display: block; margin-top: 2% }
+input[type=password], input[type=text] { width: 18em }
+input:not([type=checkbox]) { display: block; font-size: 12pt; margin-top: .2em }
+</style>
+<form id=form>
+	<label>User
+		<input type=text>
+	</label>
+	<label>Shared Key&nbsp;&nbsp;<input type=checkbox id=show>show
+		<input id=key autocomplete=current-password type=password pattern="[a-zA-Z2-7\s-]+"><d></d>
+	</label>
+	<p><input type=submit value="Generate TOTP (and copy it to clipboard)">
+	<p id=code>XXXXXX
+</form>
+<p>This is a javascript implementation of a <a href=https://www.rfc-editor.org/rfc/rfc6238>TOTP</a> generator,
+using the browser's <a href=https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto>crypto API</a>.
+It should do the exactly same thing as the google authenticator,
+the <code><a href=https://www.nongnu.org/oath-toolkit/oathtool.1.html>oathtool</a> --totp -b ...</code> command, or any other TOTP generating app.
+
+<p>The javascript code does not send to or fetch any data from anywhere
+remotely, and <a href=https://turistu.github.io/totp.html>this page</a> should
+work the same when served over https, saved locally or used inside a browser
+extension.
+
+<p>The TOTP shared key should be in <a href=https://datatracker.ietf.org/doc/html/rfc4648#section-6>base32</a> format,
+eg <code>TK7P33KPE527ZTOX</code> (github) or <code>opid zgaw quda ip7q tj3z izo7 oemp t7dm</code> (google).
+
+<p>The <q>User</q> field is not used for generating the OTP, its only purpose
+is to help you save and autocomplete different keys using the browser's
+password manager.
+
+<p>This could be packaged into an xpi firefox browser extension, which will
+offer the convenience of generating the TOTP (for a key you have saved)
+directly from a toolbar popup instead of having to switch to another tab.
+The xpi does not do anything more than that and does not include any content
+scripts or filters.
+<hr>
+<script style="display: block; white-space: pre; font-family: monospace">
+async function totp(key){
+	return hotp(unbase32(key), pack64bu(Math.floor(Date.now() / 30000)));
+}
+async function hotp(key, counter){
+	const y = window.crypto.subtle;
+	if(!y) throw 'no window.crypto.subtle object available';
+	const k = await y.importKey('raw', key, {name: "HMAC", hash: "SHA-1"}, false, ['sign']);
+	return hotp_truncate(await y.sign('HMAC', k, counter));
+}
+function hotp_truncate(b){
+	const a = Array.from(new Uint8Array(b)), i = a[19] & 0xf;
+	return (((a[i]&0x7f)<<24|a[i+1]<<16|a[i+2]<<8|a[i+3]) % 1000000).fmt(10, 6)
+}
+
+Number.prototype.fmt = function (base, width){
+	return this.toString(base).padStart(width, '0')
+}
+function unbase32(s){
+	var t = /[^a-zA-Z2-7\s-]/.exec(s);
+	if(t) throw `bad char '${t}' in key`;
+	t = s.toLowerCase().match(/[a-z2-7]/g).map(c => "abcdefghijklmnopqrstuvwxyz234567".indexOf(c).fmt(2, 5)).join("");
+	if(t.length < 8 || t.length % 8)
+		throw `bad ${t.length} bits key length`;
+	return new Uint8Array(t.match(/.{8}/g).map(d => parseInt(d, 2)));
+}
+function pack64bu(v){
+	var b = new ArrayBuffer(8), d = new DataView(b);
+	d.setUint32(0, Math.floor(v / 4294967296));
+	d.setUint32(4, v % 4294967296);
+	return new Uint8Array(b);
+}
+</script>
+<script>
+function qs(s){ return document.querySelector(s) }
+function generate_code(e){
+	totp(qs('#key').value).then(c => {
+		qs('#code').textContent = c;
+		navigator.clipboard.writeText(c);
+	}).catch(error => qs('#code').textContent = error);
+	e.preventDefault()
+}
+qs('#form').onsubmit = generate_code;
+qs('#key').oninput = function(e){
+	if(this != document.activeElement) return generate_code(e)
+}
+if(s = qs('#show')){
+	s.checked = false;
+	s.onchange = function(e){
+		qs('#key').type = this.checked ? 'text': 'password'
+	}
+}
+</script>
