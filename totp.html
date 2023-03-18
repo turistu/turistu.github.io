@@ -3,13 +3,13 @@
 <meta charset=utf-8>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <style>
-input:invalid { outline-style: solid; outline-color: red; border-color: red }
-input:invalid + ::after {
-	color: red;
-	font-weight: bold;
+input:invalid { background-color: red; color: pink }
+#error { color: red; font-weight: bold; height: 1em }
+input:invalid ~ #error:empty::after {
 	content: 'ERROR: only letters and digits from 2 to 7 allowed';
 }
 #code { font-family: monospace; font-size: 18pt; letter-spacing: .15em }
+#code:empty::before { content: 'XXXXXX' }
 form > * { display: block; margin-bottom: 1em }
 input[type=password], input[type=text] { width: 100%; max-width: 25em }
 input:not([type=checkbox]) {
@@ -22,9 +22,9 @@ input:not([type=checkbox]) {
 		<input type=text>
 	</label>
 	<label>Shared Key&nbsp;&nbsp;<input type=checkbox id=show>show
-		<input id=key autocomplete=current-password type=password pattern="[a-zA-Z2-7\s]+"><div></div>
+		<input id=key autocomplete=current-password type=password pattern="[a-zA-Z2-7\s]+"><div id=error></div>
 	</label>
-	<div id=code>XXXXXX</div>
+	<div id=code></div>
 	<input type=button id=generate value="Generate TOTP (and copy it to clipboard)">
 	<input type=submit value="Save the key (with the browser's password manager)">
 </form>
@@ -92,12 +92,15 @@ function generate_code(e){
 	totp(qs('#key').value).then(c => {
 		qs('#code').textContent = c;
 		navigator.clipboard.writeText(c);
-	}).catch(error => qs('#code').textContent = error);
-	e.preventDefault()
+	}).catch(error => {
+		qs('#error').textContent = 'ERROR: ' + error;
+		qs('#key').setCustomValidity('failed');
+	})
 }
 qs('#generate').onclick = generate_code;
 qs('#key').oninput = function(e){
 	if(this != document.activeElement) return generate_code(e)
+	else { this.setCustomValidity(''); qs('#error').innerHTML = '' }
 }
 qs('#show').checked = false;
 qs('#show').onchange = function(e){
