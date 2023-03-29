@@ -11,9 +11,14 @@ input:invalid ~ #error:empty::after {
 #code { font-family: monospace; font-size: 18pt; letter-spacing: .15em }
 #code:empty::before { content: 'XXXXXX' }
 form > * { display: block; margin-bottom: 1em }
-input[type=password], input[type=text] { width: 100%; max-width: 25em }
+input[type=password], input[type=text] {
+	width: 100%; max-width: 25em; min-width: 5em; box-sizing: border-box
+}
 input:not([type=checkbox]) {
 	display: block; font-size: 110%; margin-top: .2em;
+}
+script[data-visible] {
+	display: block; white-space: pre; font-family: monospace;
 }
 </style>
 <iframe name=fram style=display:none></iframe>
@@ -28,29 +33,25 @@ input:not([type=checkbox]) {
 	<input type=button id=generate value="Generate TOTP (and copy it to clipboard)">
 	<input type=submit value="Save the key (with the browser's password manager)">
 </form>
+The TOTP shared key should be in base32 format,
+eg <code>TK7P33KPE527ZTOX</code> (github) or <code>opid zgaw quda ip7q tj3z izo7 oemp t7dm</code> (google).
+<p>The <q>User</q> field is not used for computing the TOTP; its only purpose is to act as a label for the password manager.
+<hr>
 <p>This is a javascript implementation of a <a href=https://www.rfc-editor.org/rfc/rfc6238>TOTP</a> generator,
 using the browser's <a href=https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto>crypto API</a>.
 It should do the exactly same thing as the google authenticator or any other TOTP generating app.
 
 <p>The javascript code does not send to or fetch any data from anywhere
-remotely, and <a href=https://turistu.github.io/totp.html>this page</a> should
+remotely, and the <a href=https://turistu.github.io/totp.html>demo page</a> should
 work the same when served over https, saved locally or used inside a browser
 extension.
-
-<p>The TOTP shared key should be in <a href=https://datatracker.ietf.org/doc/html/rfc4648#section-6>base32</a> format,
-eg <code>TK7P33KPE527ZTOX</code> (github) or <code>opid zgaw quda ip7q tj3z izo7 oemp t7dm</code> (google).
-
-<p>The <q>User</q> field is not used for generating the OTP, its only purpose
-is to help you save and autocomplete different keys using the browser's
-password manager.
 
 <p>I have also packaged this into an <a href=https://addons.mozilla.org/en-US/firefox/addon/totp/>xpi firefox browser extension</a>, which offers the
 convenience of generating the TOTP (for a key you have saved) directly from
 a toolbar popup instead of having to switch to another tab. The xpi does not
 do anything more than that and does not include any content
 scripts or filters.
-<hr>
-<script style="display: block; white-space: pre; font-family: monospace">
+<script data-visible>
 async function totp(key){
 	return hotp(unbase32(key), pack64bu(Math.floor(Date.now() / 30000)));
 }
