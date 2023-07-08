@@ -16,9 +16,7 @@ input#user, input#key {
 }
 input:not([type=checkbox]) { display: block; font-size: 110% }
 form > * { display: block; margin-bottom: 1em }
-script[data-visible] {
-	display: block; white-space: pre; font-family: monospace;
-}
+script#source { display: block; white-space: pre; font-family: monospace }
 </style>
 <iframe name=fram style=display:none></iframe>
 <form target=fram>
@@ -49,9 +47,8 @@ extension.
 <p>I have also packaged this into an <a href=https://addons.mozilla.org/en-US/firefox/addon/totp/>xpi firefox browser extension</a>, which offers the
 convenience of generating the TOTP (for a key you have saved) directly from
 a toolbar popup instead of having to switch to another tab. The xpi does not
-do anything more than that and does not include any content
-scripts or filters.
-<script id=source data-visible>
+do anything more than that and does not include any content scripts or filters.
+<script id=source>
 async function totp(key){
 	return hotp(unbase32(key), pack64bu(Math.floor(Date.now() / 30000)));
 }
