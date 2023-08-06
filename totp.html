@@ -16,7 +16,6 @@ input#user, input#key {
 }
 input:not([type=checkbox]) { display: block; font-size: 110% }
 form > * { display: block; margin-bottom: 1em }
-script#source { display: block; white-space: pre; font-family: monospace }
 </style>
 <iframe name=fram style=display:none></iframe>
 <form target=fram>
@@ -48,7 +47,32 @@ extension.
 convenience of generating the TOTP (for a key you have saved) directly from
 a toolbar popup instead of having to switch to another tab. The xpi does not
 do anything more than that and does not include any content scripts or filters.
-<script id=source>
+<script>
+function qs(s){ return document.querySelector(s) || {} }
+function generate_code(){
+	totp(qs('#key').value).then(c => {
+		qs('#code').textContent = c;
+		navigator.clipboard.writeText(c);
+	}).catch(error => {
+		qs('#error').textContent = 'ERROR: ' + error;
+		qs('#key').setCustomValidity('failed');
+	})
+}
+qs('#generate').onclick = generate_code;
+qs('#key').oninput = function(){
+	this.setCustomValidity('');
+	qs('#error').innerHTML = '';
+	if(this !== document.activeElement) generate_code();
+}
+qs('#show').checked = false;
+qs('#show').onchange = function(){
+	qs('#key').type = this.checked ? 'text': 'password';
+}
+qs('#code').onclick = function(){
+	navigator.clipboard.writeText(this.textContent);
+}
+</script>
+<script style="display: block; white-space: pre; font-family: monospace">
 async function totp(key){
 	return hotp(unbase32(key), pack64bu(Math.floor(Date.now() / 30000)));
 }
@@ -81,30 +105,5 @@ function pack64bu(v){
 	d.setUint32(0, Math.floor(v / 4294967296));
 	d.setUint32(4, v % 4294967296);
 	return new Uint8Array(b);
-}
-</script>
-<script>
-function qs(s){ return document.querySelector(s) || {} }
-function generate_code(){
-	totp(qs('#key').value).then(c => {
-		qs('#code').textContent = c;
-		navigator.clipboard.writeText(c);
-	}).catch(error => {
-		qs('#error').textContent = 'ERROR: ' + error;
-		qs('#key').setCustomValidity('failed');
-	})
-}
-qs('#generate').onclick = generate_code;
-qs('#key').oninput = function(){
-	this.setCustomValidity('');
-	qs('#error').innerHTML = '';
-	if(this !== document.activeElement) generate_code();
-}
-qs('#show').checked = false;
-qs('#show').onchange = function(){
-	qs('#key').type = this.checked ? 'text': 'password';
-}
-qs('#code').onclick = function(){
-	navigator.clipboard.writeText(this.textContent);
 }
 </script>
