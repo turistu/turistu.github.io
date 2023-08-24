@@ -1,15 +1,17 @@
 <!DOCTYPE HTML>
 <title>a simple TOTP generator</title>
 <meta charset=utf-8>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name=viewport content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <style>
 input:invalid { background-color: red; color: pink }
 #error { color: red; font-weight: bold; height: 1em }
 input:invalid ~ #error:empty::after {
 	content: 'ERROR: only letters and digits from 2 to 7 allowed'
 }
-#code { font-family: monospace; user-select: all }
-#code { font-size: 250%; letter-spacing: .15em }
+#code { font-size: 250%; letter-spacing: .15em; font-family: monospace }
+#code::after { all: initial; content: attr(title); color: red }
+#code::after { display: block; font-size: 30% }
+#code[title^=copied]::after { color: green }
 input { max-width: 100%; white-space: normal }
 [autocomplete] {
 	width: 100%; max-width: 25em; min-width: 5em; box-sizing: border-box
@@ -49,28 +51,33 @@ a toolbar popup instead of having to switch to another tab. The xpi does not
 do anything more than that and does not include any content scripts or filters.
 <script>
 function qs(s){ return document.querySelector(s) || {} }
-function generate_code(){
+function generate(event){
 	totp(qs('#key').value).then(c => {
-		qs('#code').textContent = c;
-		navigator.clipboard.writeText(c);
+		qs('#code').textContent = c; copy(event);
 	}).catch(error => {
 		qs('#error').textContent = 'ERROR: ' + error;
 		qs('#key').setCustomValidity('failed');
 	})
 }
-qs('#generate').onclick = generate_code;
+function copy(event){
+	const code = qs('#code'), sel = getSelection();
+	navigator.clipboard.writeText(code.textContent).then(() => {
+		code.title = 'copied!'; sel.selectAllChildren(code);
+	}).catch(error => {
+		code.title = event ? 'copy failed' : 'click to copy';
+		if(sel.containsNode(code)) sel.removeAllRanges();
+	})
+}
+qs('#generate').onclick = generate;
 qs('#key').oninput = function(){
-	this.setCustomValidity('');
-	qs('#error').innerHTML = '';
-	if(this !== document.activeElement) generate_code();
+	this.setCustomValidity(''); qs('#error').innerHTML = '';
+	if(this !== document.activeElement) generate();
 }
 qs('#show').checked = false;
 qs('#show').onchange = function(){
 	qs('#key').type = this.checked ? 'text': 'password';
 }
-qs('#code').onclick = function(){
-	navigator.clipboard.writeText(this.textContent);
-}
+qs('#code').onclick = copy;
 </script>
 <script style="display: block; white-space: pre; font-family: monospace; overflow: auto">
 async function totp(key){
