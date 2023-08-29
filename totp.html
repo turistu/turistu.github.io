@@ -88,7 +88,7 @@ if(window.PasswordCredential)
 		e.preventDefault();
 	}
 </script>
-<script style="display: block; white-space: pre; font-family: monospace; overflow: auto">
+<script id=source style="display: block; white-space: pre; font-family: monospace; overflow: auto">
 async function totp(key){
 	return hotp(unbase32(key), pack64bu(Date.now() / 30000));
 }
