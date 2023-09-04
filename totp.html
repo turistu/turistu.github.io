@@ -1,41 +1,54 @@
 <!DOCTYPE HTML>
 <title>a simple TOTP generator</title>
-<meta charset=utf-8>
 <meta name=viewport content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <style>
-input:invalid { background-color: red; color: pink }
-#error { color: red; font-weight: bold; height: 1em }
-input:invalid ~ #error:empty::after {
+#key:invalid { background-color: red; color: pink }
+#error { color: red; display: inline-block; line-height: inherit }
+#key:invalid ~ #error:empty::after {
 	content: 'ERROR: only letters and digits from 2 to 7 allowed'
 }
-#code { font-size: 250%; letter-spacing: .15em; font-family: monospace }
-#code::after { all: initial; content: attr(title); height: 1em; color: red }
-#code::after { display: block; font-size: 30% }
+input { width: 100%; box-sizing: border-box; font-size: inherit; display: block }
+[value] { text-align: start; max-width: max-content; white-space: normal; margin: 1em 0 }
+#code::after { all: initial; margin-left: .5ex; content: attr(title); color: red }
 #code[title^=copied]::after { color: green }
-input { max-width: 100%; white-space: normal }
-[autocomplete] {
-	width: 100%; max-width: 25em; min-width: 5em; box-sizing: border-box
-}
-input:not([type=checkbox]) { display: block; font-size: 110% }
-form > * { display: block; margin-bottom: 1em }
+#code { font-size: 250%; letter-spacing: .15em; font-family: monospace }
+
+#user, #pw { max-width: 26em; display: block; margin-bottom: 1em; position: relative }
+#show { position: absolute; right: 1ex; top: 0; bottom: 0; display: flex; align-items: center; font-size: 80% }
+#show::before { background-color: lightgray; content: 'show' }
+[type=text] + #show::before { content: 'hide' }
+#add { display: none }
+
+.popup :not(#user, #code) { display: none }
+.popup #user { font-size: revert; margin: .5em 0 }
+.popup #code { all: initial }
+.popup #code::after { font-size: 70% }
+.popup #add { display: revert; float: right }
+
 </style>
+
 <iframe name=fram style=display:none></iframe>
 <form target=fram>
-    <label>User<input id=user autocomplete=username></label>
-    <div>
-	<label for=key>Shared Key</label>
-	<label><input type=checkbox id=show>show</label>
-	<input id=key autocomplete=current-password type=password pattern="[a-zA-Z2-7\s]+">
-	<div id=error></div>
-    </div>
-    <div id=code>XXXXXX</div>
-    <input type=button id=generate value="Generate TOTP (and copy it to clipboard)">
-    <input type=submit value="Save the key (with the browser's password manager)">
-</form>
-The TOTP shared key should be in base32 format,
-eg <code>TK7P33KPE527ZTOX</code> (github) or <code>opid zgaw quda ip7q tj3z izo7 oemp t7dm</code> (google).
+
+<label for=user>User</label>
+<input id=user autocomplete=username>
+<label id=pw>Shared Key
+  <input id=key autocomplete=current-password type=password pattern="[a-zA-Z2-7\s]+">
+  <div id=show></div>
+  <b id=error></b>
+</label>
+<span id=code>XXXXXX</span>
+<a id=add href target=_blank>add key</a>
+
+<input type=button id=generate value="Generate TOTP (and copy it to clipboard)">
+<input type=submit value="Save the key (with the browser's password manager)">
+
+<p>The TOTP shared key should be in base32 format, e.g. <code>TK7P33KPE527ZTOX</code> (github) or <code>opid zgaw quda ip7q tj3z izo7 oemp t7dm</code> (google).
+
 <p>The <q>User</q> field is not used for computing the TOTP; its only purpose is to act as a label for the password manager.
+
 <p>If the <q>Save..</q> button does not pop up the <q>Save login/password</q> dialog, look for a key-like icon in the address bar and click on it. If there's no such icon, check if your browser's settings prevent it from saving passwords on this page.
+</form>
 <hr>
 <p>This is a javascript implementation of a <a href=https://www.rfc-editor.org/rfc/rfc6238>TOTP</a> generator,
 using the browser's <a href=https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto>crypto API</a>.
@@ -51,7 +64,7 @@ convenience of generating the TOTP (for a key you have saved) directly from
 a toolbar popup instead of having to switch to another tab. The xpi does not
 do anything more than that and does not include any content scripts or filters.
 <script>
-function qs(s){ return document.querySelector(s) || {} }
+function qs(s){ return document.querySelector(s) }
 function generate(){
 	totp(qs('#key').value).then(c => {
 		qs('#code').textContent = c; copy();
@@ -60,14 +73,13 @@ function generate(){
 		qs('#key').setCustomValidity('failed');
 	})
 }
-function copy(event){
-	const code = qs('#code');
-	navigator.clipboard.writeText(code.textContent).then(() => {
-		code.title = 'copied!';
+function copy(e){
+	navigator.clipboard.writeText(qs('#code').textContent).then(() => {
+		qs('#code').title = 'copied!';
 		if(navigator.userAgent.includes("(X11;"))
-			getSelection().selectAllChildren(code);
+			getSelection().selectAllChildren(qs('#code'));
 	}).catch(error => {
-		code.title = event ? 'copy failed' : 'click to copy';
+		qs('#code').title = e ? 'copy failed' : 'click to copy';
 	})
 }
 qs('#generate').onclick = generate;
@@ -75,11 +87,15 @@ qs('#key').oninput = function(){
 	this.setCustomValidity(''); qs('#error').innerHTML = '';
 	if(this !== document.activeElement) generate();
 }
-qs('#show').checked = false;
-qs('#show').onchange = function(){
-	qs('#key').type = this.checked ? 'text': 'password';
+qs('#show').onclick = function(e){
+	qs('#key').type = qs('#key').type === 'text' ? 'password' : 'text';
+	e.preventDefault();
 }
 qs('#code').onclick = copy;
+qs('form').className = document.location.hash.substr(1);
+// this currently only seems to work in chrome
+// where it is also the most reliable way, though it still does not work
+// with with file:// and chrome-extension:// urls
 if(window.PasswordCredential)
 	qs('form').onsubmit = function(e){
 		navigator.credentials.store(new PasswordCredential({
