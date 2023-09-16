@@ -109,8 +109,7 @@ async function hotp(key, counter, digits){
 }
 function hotp_truncate(buf, digits){
 	const a = new Uint8Array(buf), i = a[19] & 0xf;
-	return fmt(10, digits,
-		((a[i]&0x7f)<<24|a[i+1]<<16|a[i+2]<<8|a[i+3]) % 10**digits);
+	return fmt(10, digits, ((a[i]&0x7f)<<24 | a[i+1]<<16 | a[i+2]<<8 | a[i+3]) % 10**digits);
 }
 
 function fmt(base, width, num){
