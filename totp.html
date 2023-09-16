@@ -1,5 +1,6 @@
 <!DOCTYPE HTML>
 <title>a simple TOTP generator</title>
+<meta charset=utf-8>
 <meta name=viewport content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <style>
 #error { font-weight: bold; color: red; display: block; height: 1em }
@@ -14,25 +15,25 @@ button { max-width: max-content }
 #add { display: none }
 #show { width: unset }
 
-.popup :not(p, #user, #code), .popup ~ * { display: none }
+.popup :not(#user, #code), .popup ~ * { display: none }
 .popup #user, .popup #code { all: revert }
-.popup p { margin: .5em 0 }
+.popup #user { display: block; margin: .5em 0 }
 .popup #code::after { font-size: 80% }
 .popup #add { display: inline; float: right }
 </style>
 
 <iframe name=fram style=display:none></iframe>
 <form target=fram>
-    <label for=user>User</label><br>
-    <input id=user size=24 autocomplete=username>
+  <label for=user>User</label><br>
+  <input id=user size=24 autocomplete=username>
   <p>
     <label for=key>Shared Key</label>
     <label><input type=checkbox id=show>show</label><br>
     <input id=key size=24 autocomplete=current-password type=password pattern="[a-zA-Z2-7\s]+">
     <output for=key id=error></output>
-  <p>
-    <output for=key id=code>XXXXXX</output>
-    <a id=add href target=_blank>add key</a>
+  </p>
+  <output for=key id=code>XXXXXX</output>
+  <a id=add href target=_blank>add key</a>
   <p><button type=button id=generate>Generate TOTP (and copy it to clipboard)</button>
   <p><button>Save the key (with the browser's password manager)</button>
 </form>
@@ -104,7 +105,7 @@ async function totp(key, secs = 30, digits = 6){
 async function hotp(key, counter, digits){
 	const y = window.crypto.subtle;
 	if(!y) throw 'no window.crypto.subtle object available';
-	const k = await y.importKey('raw', key, {name: "HMAC", hash: "SHA-1"}, false, ['sign']);
+	const k = await y.importKey('raw', key, {name: 'HMAC', hash: 'SHA-1'}, false, ['sign']);
 	return hotp_truncate(await y.sign('HMAC', k, counter), digits);
 }
 function hotp_truncate(buf, digits){
@@ -117,10 +118,10 @@ function fmt(base, width, num){
 }
 function unbase32(s){
 	const t = s.toLowerCase().match(/\S/g)?.map(c => {
-		const i = "abcdefghijklmnopqrstuvwxyz234567".indexOf(c);
+		const i = 'abcdefghijklmnopqrstuvwxyz234567'.indexOf(c);
 		if(i < 0) throw `bad char '${c}' in key`;
 		return fmt(2, 5, i);
-	}).join("");
+	}).join('');
 	if(!t || t.length < 8) throw 'key too short';
 	return new Uint8Array(t.match(/.{8}/g).map(d => parseInt(d, 2)));
 }
