@@ -23,8 +23,7 @@ button { max-width: max-content }
 .popup #add { display: inline; float: right }
 </style>
 
-<iframe name=fram style=display:none></iframe>
-<form target=fram>
+<form>
   <label for=user>User</label><br>
   <input id=user size=24 autocomplete=username>
   <p>
@@ -93,16 +92,23 @@ qs('#show').onchange = function(){
 }
 qs('#code').onclick = e => copy('copy failed');
 qs('form').className = document.location.hash.substr(1);
-// this currently only seems to work in chrome
-// where it is also the most reliable way, though it still does not work
-// with with file:// and chrome-extension:// urls
-if(window.PasswordCredential)
+qs('form').onsubmit = e => e.preventDefault();
+if(window.PasswordCredential){
+	// chrome, edge
 	qs('form').onsubmit = function(e){
 		navigator.credentials.store(new PasswordCredential({
 			id: qs('#user').value, password: qs('#key').value
 		}));
 		e.preventDefault();
 	}
+}else if(!/Gecko\/\d/.test(navigator.userAgent)){
+	// firefox doesn't need this kludge
+	qs('form').onsubmit = null;
+	let iframe = document.createElement('iframe');
+	iframe.style.display = 'none';
+	qs('form').target = iframe.name = 'fram';
+	document.body.appendChild(iframe);
+}
 </script>
 <script id=source style="display: block; white-space: pre; font-family: monospace; overflow: auto">
 async function totp(key, secs = 30, digits = 6){
