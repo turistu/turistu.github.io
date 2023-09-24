@@ -75,7 +75,7 @@ async function generate(){
 async function copy(emsg){
 	try {
 		await navigator.clipboard.writeText(qs('#code').value);
-		if(!matchMedia('(pointer:coarse)').matches)
+		if(navigator.userAgent.includes("(X11;"))
 			getSelection().selectAllChildren(qs('#code'));
 		qs('#code').title = 'copied!';
 	}catch(e){
