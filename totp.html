@@ -4,36 +4,36 @@
 <meta charset=utf-8>
 <meta name=viewport content=width=device-width,initial-scale=1>
 <style>
-#error { font-weight: bold; color: red; display: block; height: 1em }
-#key:invalid { background-color: red; color: pink }
-#code { font-family: monospace; font-size: 250%; letter-spacing: .15em }
-#code::after { all: initial; content: ' ' attr(title); color: red }
-#code[title^=copied]::after { color: green }
+#ERROR { font-weight: bold; color: red; display: block; height: 1em }
+#KEY:invalid { background-color: red; color: pink }
+#CODE { font-family: monospace; font-size: 250%; letter-spacing: .15em }
+#CODE::after { all: initial; content: ' ' attr(title); color: red }
+#CODE[title^=copied]::after { color: green }
 
 input, button { font: inherit }
-#user, #key { box-sizing: border-box; width: 100%; max-width: 25em }
+#USER, #KEY { box-sizing: border-box; width: 100%; max-width: 25em }
 button { max-width: max-content }
-#add { display: none }
+#ADD { display: none }
 
 .popup *, .popup ~ * { display: none }
-.popup #user, .popup #code { all: revert }
-.popup #user { display: block; margin: .5em 0 }
-.popup #code::after { font-size: 80% }
-.popup #add { display: inline; float: right }
+.popup #USER, .popup #CODE { all: revert }
+.popup #USER { display: block; margin: .5em 0 }
+.popup #CODE::after { font-size: 80% }
+.popup #ADD { display: inline; float: right }
 </style>
 
-<form>
-  <label for=user>User</label><br>
-  <input id=user size=24 autocomplete=username>
+<form id=FORM>
+  <label for=USER>User</label><br>
+  <input id=USER size=24 autocomplete=username>
   <p>
-    <label for=key>Shared Key</label>
-    <label><input type=checkbox id=show>show</label><br>
-    <input id=key size=24 autocomplete=current-password type=password pattern="[a-zA-Z2-7\s]+">
-    <output for=key id=error></output>
+    <label for=KEY>Shared Key</label>
+    <label><input type=checkbox id=SHOW>show</label><br>
+    <input id=KEY size=24 autocomplete=current-password type=password pattern="[a-zA-Z2-7\s]+">
+    <output for=KEY id=ERROR></output>
   </p>
-  <output for=key id=code>XXXXXX</output>
-  <a id=add href target=_blank>add key</a>
-  <p><button type=button id=generate>Generate TOTP (and copy it to clipboard)</button>
+  <output for=KEY id=CODE>XXXXXX</output>
+  <a id=ADD href target=_blank>add key</a>
+  <p><button type=button id=GENERATE>Generate TOTP (and copy it to clipboard)</button>
   <p><button>Save the key (with the browser's password manager)</button>
 </form>
 
@@ -62,56 +62,56 @@ directly from a toolbar popup instead of having to switch to another tab.
 The xpi does not do anything more than that and does not include any content
 scripts or filters.
 <script>
-function qs(s){ return document.querySelector(s) }
 async function generate(){
-	try {
-		qs('#code').value = await totp(qs('#key').value);
-		copy('click to copy');
-	}catch(e){
-		qs('#key').setCustomValidity(e);
-		qs('#error').value = 'ERROR: ' + e;
-	}
+	try { CODE.value = await totp(KEY.value); copy('click to copy') }
+	catch(e){ KEY.setCustomValidity(ERROR.value = 'ERROR: ' + e) }
 }
 async function copy(emsg){
 	try {
-		await navigator.clipboard.writeText(qs('#code').value);
-		if(navigator.userAgent.includes("(X11;"))
-			getSelection().selectAllChildren(qs('#code'));
-		qs('#code').title = 'copied!';
-	}catch(e){
-		qs('#code').title = emsg;
-	}
+		await navigator.clipboard.writeText(CODE.value);
+		if(!matchMedia('(pointer:coarse)').matches)
+			getSelection().selectAllChildren(CODE);
+		CODE.title = 'copied!';
+	}catch(e){ CODE.title = emsg }
 }
-qs('#generate').onclick = generate;
-qs('#key').oninput = function(){
-	this.setCustomValidity('');
-	qs('#error').value = this.checkValidity() ?
-		'' : 'ERROR: only A..Z, 2..7 and spaces allowed';
-	if(this !== document.activeElement) generate();
+GENERATE.onclick = generate;
+KEY.oninput = function(){
+	KEY.setCustomValidity('');
+	ERROR.value = KEY.checkValidity() ?  '' :
+		'ERROR: only A..Z, 2..7 and spaces allowed';
+	if(KEY !== document.activeElement) generate();
 }
-qs('#show').checked = false;
-qs('#show').onchange = function(){
-	qs('#key').type = this.checked ? 'text': 'password';
-}
-qs('#code').onclick = e => copy('copy failed');
-qs('form').className = document.location.hash.substr(1);
-qs('form').onsubmit = e => e.preventDefault();
+SHOW.checked = false;
+SHOW.onchange = e => KEY.type = SHOW.checked ? 'text': 'password';
+CODE.onclick = e => copy('copy failed');
+FORM.onsubmit = e => e.preventDefault();
+FORM.className = document.location.hash.substr(1);
 if(window.PasswordCredential){
-	// chrome, edge
-	qs('form').onsubmit = function(e){
+	// chromium-based browsers
+	FORM.onsubmit = function(e){
 		navigator.credentials.store(new PasswordCredential({
-			id: qs('#user').value, password: qs('#key').value
+			id: USER.value, password: KEY.value
 		}));
 		e.preventDefault();
 	}
 }else if(!/Gecko\/\d/.test(navigator.userAgent)){
-	// firefox doesn't need this kludge
-	qs('form').onsubmit = null;
+	// use an invisible iframe as the target of the form on non-chromium
+	// and non-gecko browsers
+	FORM.onsubmit = null;
 	let iframe = document.createElement('iframe');
 	iframe.style.display = 'none';
-	qs('form').target = iframe.name = 'fram';
+	FORM.target = iframe.name = 'fram';
 	document.body.appendChild(iframe);
 }
+// use execCommand('copy') on older browsers; that usually fails when
+// called from anything but an event handler
+if(!navigator.clipboard)
+	copy = function(emsg){
+		getSelection().selectAllChildren(CODE);
+		CODE.title = document.execCommand('copy') ? 'copied!' : emsg;
+		if(matchMedia('(pointer:coarse)').matches)
+			getSelection().removeAllRanges();
+	};
 </script>
 <script id=source style="display: block; white-space: pre; font-family: monospace; overflow: auto">
 async function totp(key, secs = 30, digits = 6){
