@@ -8,7 +8,7 @@
 #KEY:invalid { background-color: red; color: pink }
 #CODE { font: 250% monospace; letter-spacing: .15em; user-select: all }
 #CODE::after { all: initial; content: ' ' attr(title); color: red; pointer-events: none }
-#CODE[title^=copied]::after { color: green }
+#CODE[title^="copied!"]::after { color: green }
 
 input, button { font: inherit }
 #USER, #KEY { box-sizing: border-box; width: 100%; max-width: 25em }
@@ -24,11 +24,11 @@ button { max-width: max-content }
 
 <form id=FORM>
   <label for=USER>User</label><br>
-  <input id=USER size=24 autocomplete=username>
+  <input id=USER size=26 autocomplete=username>
   <p>
     <label for=KEY>Shared Key</label>
     <label><input type=checkbox id=SHOW>show</label><br>
-    <input id=KEY size=24 autocomplete=current-password type=password pattern="[a-zA-Z2-7\s]+">
+    <input id=KEY size=26 autocomplete=current-password type=password pattern="[a-zA-Z2-7\s]+">
     <output for=KEY id=ERROR></output>
   </p>
   <output for=KEY id=CODE>XXXXXX</output>
@@ -67,19 +67,21 @@ async function generate(){
 	try { CODE.value = await totp(KEY.value); copy('click to copy', true) }
 	catch(e){ KEY.setCustomValidity(ERROR.value = e) }
 }
-function select_is_ok(){
-	if(matchMedia('(pointer:coarse)').matches)
-		return false; // touchscreen
-	if(/\(X11;.* rv:1[2-9][0-9].* Gecko\//.test(navigator.userAgent))
-		return false; // pastejack bug 1855345 half-fix broke it
-	return true;
+function touchscreen(){
+	return matchMedia('(pointer:coarse)').matches
+}
+function select_is_broken(){
+	let m = /\(X11;.* rv:(\d+).* Gecko\//.exec(navigator.userAgent);
+	return m && m[1] >= 121; // half-fix for pastejack bug 1855345 broke it
 }
 async function copy(emsg, select){
 	try {
 		await navigator.clipboard.writeText(CODE.value);
-		if(select && select_is_ok())
-			getSelection().selectAllChildren(CODE);
 		CODE.title = 'copied!';
+		if(select && !touchscreen()){
+			if(select_is_broken()) CODE.title = 'copied (for ctrl-V)';
+			else getSelection().selectAllChildren(CODE);
+		}
 	}catch(e){ CODE.title = emsg }
 }
 GENERATE.onclick = generate;
@@ -119,7 +121,6 @@ if(!navigator.clipboard)
 			getSelection().selectAllChildren(CODE);
 			CODE.title = document.execCommand('copy') ?
 				'copied!' : emsg;
-			if(!select_is_ok()) getSelection().removeAllRanges();
 		}catch(e){ CODE.title = emsg }
 	};
 </script>
