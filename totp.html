@@ -141,7 +141,7 @@ async function hotp({key, digits = 6, hash = 'SHA-1', secs = 30,
 	return hotp_truncate(await y.sign('HMAC', k, rcounter), digits);
 }
 function hotp_truncate(buf, digits){
-	let a = new Uint8Array(buf), i = a[19] & 0xf;
+	let a = new Uint8Array(buf), i = a[a.length - 1] & 0xf;
 	return fmt(10, digits, ((a[i]&0x7f)<<24 | a[i+1]<<16 | a[i+2]<<8 | a[i+3]) % 10**digits);
 }
 
